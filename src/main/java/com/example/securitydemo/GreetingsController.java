@@ -12,13 +12,13 @@ public class GreetingsController {
         return "Hello";
     }
 
-    @PreAuthorize("hasRole('user1')")
+    @PreAuthorize("hasRole('USER')")
     @GetMapping("/user")
     public String userEndpoint() {
         return "Hello, user1";
     }
 
-    @PreAuthorize("hasRole('admin')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin")
     public String adminEndpoint() {
         return "Hello, admin";
