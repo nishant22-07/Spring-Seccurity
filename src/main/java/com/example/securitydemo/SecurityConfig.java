@@ -1,8 +1,13 @@
 package com.example.securitydemo;
 
+import com.example.securitydemo.jwt.AuthEntryPointJwt;
+import com.example.securitydemo.jwt.AuthTokenFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -15,6 +20,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 
 import javax.sql.DataSource;
@@ -30,29 +36,48 @@ public class SecurityConfig {
     @Autowired
     DataSource dataSource;
 
+    @Autowired
+    private AuthEntryPointJwt unauthorizedHandler;
+
+    @Bean
+    public AuthTokenFilter authenticationJwtTokenFilter() {
+        AuthTokenFilter authTokenFilter = new AuthTokenFilter();
+        return authTokenFilter;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration configuration
+    ) throws Exception {
+        return configuration.getAuthenticationManager();
+    }
+
     @Bean
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
 
         http.authorizeHttpRequests(request -> request
                         .requestMatchers("/h2-console/**").permitAll()
-                        .anyRequest().authenticated()
-                )
-                // 🔑 IMPORTANT for H2
-                .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/h2-console/**")
-                )
-                // 🖼️ Allow H2 iframe
-                .headers(headers -> headers
-                        .frameOptions(frame -> frame.disable())
-                )
+                        .requestMatchers("/signin").permitAll()
+                        .anyRequest().authenticated());
 
                 // ❌ REMOVE STATELESS (H2 needs session)
-                // .sessionManagement(session ->
-                //     session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                // )
+                 http.sessionManagement(session ->
+                     session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                 );
+                 http.exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler));
+//                 http.httpBasic(withDefaults());
 
-                .httpBasic(withDefaults());
+                // 🖼️ Allow H2 iframe
+                http.headers(headers -> headers
+                    .frameOptions(frameOptions -> frameOptions
+                            .sameOrigin())
+                );
+                // 🔑 IMPORTANT for H2
+                http.csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/h2-console/**")
+                );
 
+                http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
