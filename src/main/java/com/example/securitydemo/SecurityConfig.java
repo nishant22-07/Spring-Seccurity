@@ -59,6 +59,7 @@ public class SecurityConfig {
         http.authorizeHttpRequests(request -> request
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/signin").permitAll()
+                        .requestMatchers("/api/public/**").permitAll()
                         .anyRequest().authenticated());
 
                 // ❌ REMOVE STATELESS (H2 needs session)
@@ -74,9 +75,10 @@ public class SecurityConfig {
                             .sameOrigin())
                 );
                 // 🔑 IMPORTANT for H2
-                http.csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/h2-console/**","/signin")
-                );
+//                http.csrf(csrf -> csrf
+//                        .ignoringRequestMatchers("/h2-console/**","/signin")
+//                );
+        http.csrf(csrf -> csrf.disable());
 
                 http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
         return http.build();
@@ -92,20 +94,27 @@ public class SecurityConfig {
     @Bean
     public CommandLineRunner initData(UserDetailsService userDetailsService) {
         return args -> {
-            UserDetails user1 = User.withUsername("user1")
-                    .password(passwordEncoder().encode("user1Pass"))
-                    .roles("USER")
-                    .build();
 
-            UserDetails admin = User.withUsername("admin")
-                    .password(passwordEncoder().encode("adminPass"))
-                    .roles("ADMIN")
-                    .build();
-
+//            JdbcUserDetailsManager manager = (JdbcUserDetailsManager) userDetailsService;
             JdbcUserDetailsManager userDetailsManager = new JdbcUserDetailsManager(dataSource);
 
-            userDetailsManager.createUser(user1);
-            userDetailsManager.createUser(admin);
+            if(!userDetailsManager.userExists("user1")) {
+                UserDetails user1 = User.withUsername("user1")
+                        .password(passwordEncoder().encode("user1Pass"))
+                        .roles("USER")
+                        .build();
+                userDetailsManager.createUser(user1);
+            }
+
+
+            if(!userDetailsManager.userExists("admin")){
+                UserDetails admin = User.withUsername("admin")
+                        .password(passwordEncoder().encode("adminPass"))
+                        .roles("ADMIN")
+                        .build();
+                userDetailsManager.createUser(admin);
+            }
+
         };
     }
 
