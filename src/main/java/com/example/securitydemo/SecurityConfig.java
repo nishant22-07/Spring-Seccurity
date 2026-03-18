@@ -47,9 +47,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration configuration
-    ) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
     }
 
@@ -58,8 +56,9 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests(request -> request
                         .requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers("/signin").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers("/signin").permitAll()
+                        .requestMatchers("/profile").permitAll()
                         .anyRequest().authenticated());
 
                 // ❌ REMOVE STATELESS (H2 needs session)
